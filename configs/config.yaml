@@ -7,9 +7,9 @@ device: "auto"  # auto | cpu | cuda | mps
 
 # ---- Paths ----
 paths:
-  dataset3: "data/dataset_3_clinical_tabular/asd.csv"
-  dataset2_raw: "data/dataset_2_eye_tracking/archive-2/Eye-tracking Output"
-  dataset2_metadata: "data/dataset_2_eye_tracking/archive-2/Metadata_Participants.csv"
+  dataset3: "../Datasets/3rd Dataset_Early Autism Screening Dataset for Toddlers/Toddler Autism dataset July 2018.csv"
+  dataset2_raw: "../Datasets/2nd_dataset/Eye-tracking Output"
+  dataset2_metadata: "../Datasets/2nd_dataset/Metadata_Participants.csv"
   dataset2_processed: "data/processed/dataset_2"
   results: "results"
   checkpoints: "results/checkpoints"
@@ -18,41 +18,49 @@ paths:
   plots: "results/plots"
   preprocessing_artifacts: "results/preprocessing_artifacts"
 
-# ---- Dataset 3 ----
+# ---- Dataset 3 (Q-CHAT-10 Toddler Screening) ----
 dataset3:
-  target_column: "Diagnosed_ASD"
-  id_column: "Child_ID"
+  target_column: "Class/ASD Traits"
+  id_column: "Case_No"
   drop_columns:
-    - "Unnamed: 10"
-    - "Child_ID"
+    - "Case_No"
+    - "Qchat-10-Score"
   numerical_features:
-    - "Age"
-    - "Social_Interaction_Score"
-    - "Communication_Score"
-    - "Repetitive_Behavior_Score"
+    - "Age_Mons"
   categorical_features:
-    - "Gender"
+    - "A1"
+    - "A2"
+    - "A3"
+    - "A4"
+    - "A5"
+    - "A6"
+    - "A7"
+    - "A8"
+    - "A9"
+    - "A10"
+    - "Sex"
     - "Jaundice"
-    - "Family_ASD_History"
-    - "Language_Delay"
+    - "Family_mem_with_ASD"
+    - "Ethnicity"
+    - "Who completed the test"
   categorical_mappings:
-    Gender:
-      Male: 1
-      Female: 0
+    Sex:
+      m: 1
+      f: 0
     Jaundice:
-      "Yes": 1
-      "No": 0
-    Family_ASD_History:
-      "Yes": 1
-      "No": 0
-    Language_Delay:
-      "Yes": 1
-      "No": 0
+      "yes": 1
+      "no": 0
+    Family_mem_with_ASD:
+      "yes": 1
+      "no": 0
+  label_encode_features:
+    - "Ethnicity"
+    - "Who completed the test"
   target_mapping:
     "Yes": 1
     "No": 0
   test_size: 0.15
-  val_size: 0.15   # fraction of remaining after test split
+  val_size: 0.15
 
 # ---- KAN (Dataset 3 Primary) ----
 kan:
@@ -84,8 +92,8 @@ tabnet:
 
 # ---- Dataset 2 (Eye Tracking) ----
 dataset2:
-  raw_dir: "data/dataset_2_eye_tracking/archive-2/Eye-tracking Output"
-  metadata_path: "data/dataset_2_eye_tracking/archive-2/Metadata_Participants.csv"
+  raw_dir: "../Datasets/2nd_dataset/Eye-tracking Output"
+  metadata_path: "../Datasets/2nd_dataset/Metadata_Participants.csv"
   processed_dir: "data/processed/dataset_2"
   sequence_length: 200
   stride: 100

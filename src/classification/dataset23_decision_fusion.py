@@ -103,14 +103,18 @@ def construct_stratified_simulation_cohort(
     sim_y_list = []
 
     # Prepare demographic strata
-    # D3: Sex ('Male'/'Female'), Age (median split)
-    d3_sex = d3_meta_df["Gender"].map({"Male": "M", "Female": "F"}).values
-    d3_age = pd.to_numeric(d3_meta_df["Age"], errors="coerce").values
+    # D3: Sex ('m'/'f' or 'Male'/'Female'), Age ('Age_Mons' or 'Age')
+    d3_sex_col = "Sex" if "Sex" in d3_meta_df.columns else "Gender"
+    d3_sex = d3_meta_df[d3_sex_col].astype(str).str.strip().str.upper().map(lambda x: "M" if x.startswith("M") else "F").values
+    d3_age_col = "Age_Mons" if "Age_Mons" in d3_meta_df.columns else "Age"
+    d3_age = pd.to_numeric(d3_meta_df[d3_age_col], errors="coerce").values
     d3_age_quant = (d3_age > np.nanmedian(d3_age)).astype(int)
 
-    # D2: Sex ('M'/'F'), Age (median split)
-    d2_sex = d2_meta_df["Gender"].values
-    d2_age = pd.to_numeric(d2_meta_df["Age"], errors="coerce").values
+    # D2: Sex ('M'/'F'), Age
+    d2_sex_col = "Gender" if "Gender" in d2_meta_df.columns else "Sex"
+    d2_sex = d2_meta_df[d2_sex_col].astype(str).str.strip().str.upper().map(lambda x: "M" if x.startswith("M") else "F").values
+    d2_age_col = "Age" if "Age" in d2_meta_df.columns else "Age_Mons"
+    d2_age = pd.to_numeric(d2_meta_df[d2_age_col], errors="coerce").values
     d2_age_quant = (d2_age > np.nanmedian(d2_age)).astype(int)
 
     for target_class, count in [(1, n_pos), (0, n_neg)]:
@@ -331,12 +335,9 @@ def run_all_fusion_experiments(
     X_val_d3, y_val_d3 = d3_pp.get_split("val")
     X_test_d3, y_test_d3 = d3_pp.get_split("test")
 
-    # Load D3 raw dataframe to extract metadata covariates
-    raw_d3_df = pd.read_csv(config["paths"]["dataset3"])
-    if "Unnamed: 10" in raw_d3_df.columns:
-        raw_d3_df = raw_d3_df.drop(columns=["Unnamed: 10"])
-    val_d3_meta = raw_d3_df.iloc[700:850].reset_index(drop=True)
-    test_d3_meta = raw_d3_df.iloc[850:1000].reset_index(drop=True)
+    # Exact metadata slices from preprocessor
+    val_d3_meta = d3_pp.get_split_df("val")
+    test_d3_meta = d3_pp.get_split_df("test")
 
     d2_pp = Dataset2Preprocessor(config)
     d2_pp.run()

@@ -53,7 +53,7 @@ def run_pipeline(config_path: str = "configs/config.yaml", max_epochs: int | Non
     print(f"Data splits: Train={X_train.shape}, Val={X_val.shape}, Test={X_test.shape}")
     print(f"Feature count: {len(preprocessor.FEATURE_NAMES)} ({preprocessor.FEATURE_NAMES})")
     assert X_train.shape[2] == 8, f"Expected 8 features, got {X_train.shape[2]}"
-    print("✓ Verified: Models receive strictly (B, 200, 8) tensors; participant_id is NOT an input feature.")
+    print("[OK] Verified: Models receive strictly (B, 200, 8) tensors; participant_id is NOT an input feature.")
 
     print("\n==================================================")
     print("STEP 2: TRAINING & EVALUATING MAMBA (PRIMARY)")
@@ -90,7 +90,7 @@ def run_pipeline(config_path: str = "configs/config.yaml", max_epochs: int | Non
 
     assert np.all((mamba_probs >= 0.0) & (mamba_probs <= 1.0)), "Mamba probabilities outside [0, 1]"
     assert set(np.unique(mamba_preds)).issubset({0, 1}), "Mamba predictions are not binary"
-    print("✓ Mamba sanity verified: Probabilities in [0, 1], binary predictions, checkpoint reloaded successfully.")
+    print("[OK] Mamba sanity verified: Probabilities in [0, 1], binary predictions, checkpoint reloaded successfully.")
 
     # 2. Check PatchTST inference
     patchtst_ckpt = "results/checkpoints/patchtst_best.pt"
@@ -100,7 +100,7 @@ def run_pipeline(config_path: str = "configs/config.yaml", max_epochs: int | Non
 
     assert np.all((patchtst_probs >= 0.0) & (patchtst_probs <= 1.0)), "PatchTST probabilities outside [0, 1]"
     assert set(np.unique(patchtst_preds)).issubset({0, 1}), "PatchTST predictions are not binary"
-    print("✓ PatchTST sanity verified: Probabilities in [0, 1], binary predictions, checkpoint reloaded successfully.")
+    print("[OK] PatchTST sanity verified: Probabilities in [0, 1], binary predictions, checkpoint reloaded successfully.")
 
     print("\n==================================================")
     print("STEP 5: GENERATING COMPARISON TABLE")

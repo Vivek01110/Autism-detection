@@ -73,7 +73,7 @@ def run_pipeline(config_path: str = "configs/config.yaml", max_epochs: int | Non
     
     assert np.all((kan_test_probs >= 0.0) & (kan_test_probs <= 1.0)), "KAN probabilities out of [0, 1]"
     assert set(np.unique(kan_test_preds)).issubset({0, 1}), "KAN predictions not binary"
-    print("✓ KAN sanity verified: Probabilities in [0, 1], predictions binary.")
+    print("[OK] KAN sanity verified: Probabilities in [0, 1], predictions binary.")
     
     # Check TabNet inference
     tabnet_model = load_tabnet_model("results/checkpoints/tabnet_best.pt", preprocessor.input_dim, config)
@@ -82,7 +82,7 @@ def run_pipeline(config_path: str = "configs/config.yaml", max_epochs: int | Non
     
     assert np.all((tabnet_test_probs >= 0.0) & (tabnet_test_probs <= 1.0)), "TabNet probabilities out of [0, 1]"
     assert set(np.unique(tabnet_test_preds)).issubset({0, 1}), "TabNet predictions not binary"
-    print("✓ TabNet sanity verified: Probabilities in [0, 1], predictions binary.")
+    print("[OK] TabNet sanity verified: Probabilities in [0, 1], predictions binary.")
     
     print("\n==================================================")
     print("STEP 5: GENERATING COMPARISON TABLE")

@@ -111,6 +111,7 @@ class Dataset2Preprocessor:
     def _resolve_raw_dir(self) -> str:
         candidates = [
             self._resolve_path(self.ds_cfg.get("raw_dir", "data/dataset_2_eye_tracking/archive-2/Eye-tracking Output")),
+            self._resolve_path("../Datasets/2nd_dataset/Eye-tracking Output"),
             self._resolve_path("data/dataset_2_eye_tracking/archive-2/Eye-tracking Output"),
             self._resolve_path("data/dataset_2_eye_tracking/Eye-tracking Output"),
         ]
@@ -122,6 +123,7 @@ class Dataset2Preprocessor:
     def _resolve_metadata_path(self) -> str:
         candidates = [
             self._resolve_path(self.ds_cfg.get("metadata_path", "data/dataset_2_eye_tracking/archive-2/Metadata_Participants.csv")),
+            self._resolve_path("../Datasets/2nd_dataset/Metadata_Participants.csv"),
             self._resolve_path("data/dataset_2_eye_tracking/archive-2/Metadata_Participants.csv"),
             self._resolve_path("data/dataset_2_eye_tracking/Metadata_Participants.csv"),
         ]
@@ -290,7 +292,7 @@ class Dataset2Preprocessor:
         assert len(t_p & v_p) == 0, f"Leakage: Train & Val overlap: {t_p & v_p}"
         assert len(t_p & te_p) == 0, f"Leakage: Train & Test overlap: {t_p & te_p}"
         assert len(v_p & te_p) == 0, f"Leakage: Val & Test overlap: {v_p & te_p}"
-        print("[Dataset2] ✓ Disjointness verified: Zero participant leakage across splits.")
+        print("[Dataset2] [OK] Disjointness verified: Zero participant leakage across splits.")
 
     def _extract_all_sequences(
         self, meta: pd.DataFrame
