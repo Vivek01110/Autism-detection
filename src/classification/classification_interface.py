@@ -307,26 +307,35 @@ class StandardizedASDClassifier:
                 if col not in feat_dict:
                     raise KeyError(f"Missing required feature for Dataset 3: '{col}'")
                 val = feat_dict[col]
-                if col in cat_mappings and isinstance(val, str):
-                    if val not in cat_mappings[col]:
-                        raise ValueError(f"Invalid category for '{col}': {val}")
-                    val = cat_mappings[col][val]
+                if col in cat_mappings:
+                    norm_map = {str(k).strip().lower(): v for k, v in cat_mappings[col].items()}
+                    val_str = str(val).strip().lower()
+                    if val_str in norm_map:
+                        val = norm_map[val_str]
+                    elif val_str in ["true", "yes"]:
+                        val = 1
+                    elif val_str in ["false", "no"]:
+                        val = 0
                 vec.append(float(val))
 
             arr = np.array(vec, dtype=np.float32).reshape(1, -1)
-            # Scale numerical features (first 4)
+            # Scale numerical features
             scaler = self._scalers.get("dataset3")
             if scaler is not None:
-                arr[:, :4] = scaler.transform(arr[:, :4])
+                num_features = d3_meta.get("numerical_features", ["Age_Mons"])
+                num_indices = [feature_order.index(f) for f in num_features if f in feature_order]
+                if num_indices:
+                    arr[:, num_indices] = scaler.transform(arr[:, num_indices])
             return arr, extracted_meta
 
         elif isinstance(features, (list, np.ndarray)):
             arr = np.asarray(features, dtype=np.float32)
             if arr.ndim == 1:
                 arr = arr.reshape(1, -1)
-            if arr.shape[1] != 8:
+            expected_dim = self._metadata_configs.get("dataset3", {}).get("input_dim", 16)
+            if arr.shape[1] != expected_dim:
                 raise ValueError(
-                    f"Dataset 3 features must have exactly 8 dimensions, got shape {arr.shape}"
+                    f"Dataset 3 features must have exactly {expected_dim} dimensions, got shape {arr.shape}"
                 )
             return arr, extracted_meta
         else:

@@ -11,7 +11,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 import torch
 from torch.utils.data import Dataset, DataLoader
 
@@ -72,6 +72,7 @@ class Dataset3Preprocessor:
     def run(self) -> "Dataset3Preprocessor":
         """Execute the full preprocessing pipeline."""
         df = self._load()
+        self.raw_df = df.copy()
         df = self._clean(df)
         df = self._encode(df)
         X, y = self._separate_features_target(df)
@@ -83,6 +84,11 @@ class Dataset3Preprocessor:
         """Return (X, y) numpy arrays for the requested split."""
         assert split in self.splits, f"Unknown split: {split}"
         return self.splits[split]
+
+    def get_split_df(self, split: str) -> pd.DataFrame:
+        """Return raw dataframe slice for the requested split."""
+        assert split in self.split_indices, f"Unknown split: {split}"
+        return self.raw_df.iloc[self.split_indices[split]].reset_index(drop=True)
 
     def get_dataloader(
         self, split: str, batch_size: int, shuffle: bool | None = None
@@ -144,6 +150,8 @@ class Dataset3Preprocessor:
     def _load(self) -> pd.DataFrame:
         csv_path = self._resolve_path(self.cfg["paths"]["dataset3"])
         df = pd.read_csv(csv_path)
+        # Strip whitespace from column names (fixes trailing spaces in raw CSVs)
+        df.columns = df.columns.str.strip()
         print(f"[Preprocessing] Loaded {csv_path}: {df.shape[0]} rows, {df.shape[1]} cols")
         return df
 
@@ -157,15 +165,37 @@ class Dataset3Preprocessor:
 
     def _encode(self, df: pd.DataFrame) -> pd.DataFrame:
         """Encode categorical features and target."""
-        # Encode binary categoricals
-        for col, mapping in self.ds_cfg["categorical_mappings"].items():
+        # Encode binary categoricals (Sex, Jaundice, Family_mem_with_ASD)
+        for col, mapping in self.ds_cfg.get("categorical_mappings", {}).items():
             if col in df.columns:
-                df[col] = df[col].map(mapping)
-                assert df[col].isna().sum() == 0, f"Unmapped values in {col}"
+                norm_map = {}
+                for k, v in mapping.items():
+                    norm_map[str(k).strip().lower()] = v
+                    if isinstance(k, bool):
+                        norm_map["true" if k else "false"] = v
+                        norm_map["yes" if k else "no"] = v
+                df[col] = df[col].astype(str).str.strip().str.lower().map(norm_map)
+                unmapped = df[col].isna().sum()
+                assert unmapped == 0, f"Unmapped values in {col} ({unmapped} NaN)"
+
+        # Label-encode multi-class categoricals (Ethnicity, Who completed the test)
+        self._label_encoders = {}
+        for col in self.ds_cfg.get("label_encode_features", []):
+            if col in df.columns:
+                le = LabelEncoder()
+                df[col] = le.fit_transform(df[col].astype(str).str.strip())
+                self._label_encoders[col] = le
+                print(f"[Preprocessing] Label-encoded '{col}': {len(le.classes_)} classes")
 
         # Encode target
         target = self.ds_cfg["target_column"]
-        df[target] = df[target].map(self.ds_cfg["target_mapping"])
+        target_map = {}
+        for k, v in self.ds_cfg.get("target_mapping", {}).items():
+            target_map[str(k).strip().lower()] = v
+            if isinstance(k, bool):
+                target_map["true" if k else "false"] = v
+                target_map["yes" if k else "no"] = v
+        df[target] = df[target].astype(str).str.strip().str.lower().map(target_map)
         assert df[target].isna().sum() == 0, "Unmapped values in target"
 
         print(f"[Preprocessing] Encoded categoricals and target")
@@ -195,22 +225,32 @@ class Dataset3Preprocessor:
         test_size = self.ds_cfg["test_size"]
         val_size = self.ds_cfg["val_size"]
 
+        indices = np.arange(len(y))
         # First split: train+val vs test
-        X_trainval, X_test, y_trainval, y_test = train_test_split(
-            X, y,
+        idx_trainval, idx_test = train_test_split(
+            indices,
             test_size=test_size,
             random_state=self.seed,
             stratify=y,
         )
         # Second split: train vs val (from the remaining data)
-        # val_size is fraction of total, convert to fraction of trainval
         val_frac_of_trainval = val_size / (1.0 - test_size)
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_trainval, y_trainval,
+        idx_train, idx_val = train_test_split(
+            idx_trainval,
             test_size=val_frac_of_trainval,
             random_state=self.seed,
-            stratify=y_trainval,
+            stratify=y[idx_trainval],
         )
+
+        self.split_indices = {
+            "train": idx_train,
+            "val": idx_val,
+            "test": idx_test,
+        }
+
+        X_train, y_train = X[idx_train], y[idx_train]
+        X_val, y_val = X[idx_val], y[idx_val]
+        X_test, y_test = X[idx_test], y[idx_test]
 
         print(f"[Preprocessing] Split — train: {len(y_train)}, val: {len(y_val)}, test: {len(y_test)}")
         print(f"[Preprocessing] Train pos rate: {y_train.mean():.3f}, Val: {y_val.mean():.3f}, Test: {y_test.mean():.3f}")
